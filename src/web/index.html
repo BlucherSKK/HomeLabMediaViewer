@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HLMV - Telemetry Player</title>
+    <style>
+        :root {
+            --accent-color: #ce3939;
+            --bg-color: #0f0f0f;
+            --panel-bg: rgba(26, 26, 26, 0.9);
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: #eeeeee;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .player-container {
+            width: 90%;
+            max-width: 1000px;
+            position: relative;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+        }
+
+        video {
+            width: 100%;
+            display: block;
+            outline: none;
+        }
+
+        /* Панель телеметрии */
+        #telemetry-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: var(--panel-bg);
+            padding: 15px;
+            border-left: 4px solid var(--accent-color);
+            border-radius: 4px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 13px;
+            pointer-events: none; /* Чтобы не мешать кликам по видео */
+            z-index: 10;
+            backdrop-filter: blur(5px);
+            transition: opacity 0.3s;
+        }
+
+        .stat-line {
+            margin: 5px 0;
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .stat-value {
+            color: #00ff41; /* "Матричный" зеленый */
+            font-weight: bold;
+        }
+
+        h1 {
+            font-weight: 300;
+            color: #888;
+            margin-bottom: 20px;
+            letter-spacing: 2px;
+        }
+
+        .controls-hint {
+            margin-top: 15px;
+            font-size: 12px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>HOME LAB MEDIA VIEWER</h1>
+
+    <div class="player-container">
+        <div id="telemetry-overlay">
+            <div style="color: var(--accent-color); margin-bottom: 8px; font-weight: bold;">LIVE TELEMETRY</div>
+            <div class="stat-line">
+                <span>Network Bitrate:</span>
+                <span id="bitrate" class="stat-value">0.00 Mbps</span>
+            </div>
+            <div class="stat-line">
+                <span>Buffer Health:</span>
+                <span id="buffer" class="stat-value">0.00s</span>
+            </div>
+            <div class="stat-line">
+                <span>Resolution:</span>
+                <span id="res" class="stat-value">Detecting...</span>
+            </div>
+        </div>
+
+        <video id="v" controls playsinline preload="metadata">
+            <source src="/video" type="video/mp4">
+            Ваш браузер не поддерживает HTML5 видео.
+        </video>
+    </div>
+
+    <p class="controls-hint">Powered by Rust & Rocket</p>
+
+    <script>
+        const video = document.getElementById('v');
+        const bitrateEl = document.getElementById('bitrate');
+        const bufferEl = document.getElementById('buffer');
+        const resEl = document.getElementById('res');
+
+        let lastBytes = 0;
+        let lastTime = performance.now();
+
+        // Функция для расчета битрейта загрузки
+        function updateStats() {
+            // 1. Расчет разрешения
+            if (video.videoWidth > 0) {
+                resEl.innerText = `${video.videoWidth}x${video.videoHeight}`;
+            }
+
+            // 2. Расчет буфера
+            if (video.buffered.length > 0) {
+                const currentPos = video.currentTime;
+                let bufferEnd = 0;
+
+                // Ищем текущий сегмент буфера
+                for (let i = 0; i < video.buffered.length; i++) {
+                    if (video.buffered.start(i) < currentPos && video.buffered.end(i) > currentPos) {
+                        bufferEnd = video.buffered.end(i);
+                        break;
+                    }
+                }
+                const health = bufferEnd <= currentPos ? 0 : bufferEnd - currentPos;
+                bufferEl.innerText = health.toFixed(2) + 's';
+            }
+
+            // 3. Расчет сетевого битрейта (через Video Performance API)
+            if (window.performance && video.getVideoPlaybackQuality) {
+                const now = performance.now();
+                const duration = (now - lastTime) / 1000; // в секундах
+
+                // Пытаемся получить данные о загруженных байтах из Resource Timing
+                const entries = performance.getEntriesByName(video.currentSrc);
+                const lastEntry = entries[entries.length - 1];
+
+                if (lastEntry && lastEntry.transferSize > 0) {
+                    const currentBytes = lastEntry.transferSize;
+                    const diff = currentBytes - lastBytes;
+
+                    if (diff > 0 && duration > 0) {
+                        const mbps = ((diff * 8) / (1024 * 1024) / duration).toFixed(2);
+                        bitrateEl.innerText = mbps + ' Mbps';
+                    }
+                    lastBytes = currentBytes;
+                }
+                lastTime = now;
+            }
+        }
+
+        // Обновляем каждые 500мс для плавности
+        setInterval(updateStats, 500);
+
+        // Скрывать телеметрию, если мышь долго не двигается (опционально)
+        let timeout;
+        document.querySelector('.player-container').onmousemove = () => {
+            document.getElementById('telemetry-overlay').style.opacity = 1;
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                document.getElementById('telemetry-overlay').style.opacity = 0.2;
+            }, 3000);
+        };
+    </script>
+</body>
+</html>
