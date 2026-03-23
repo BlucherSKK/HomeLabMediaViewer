@@ -1,24 +1,29 @@
-mod hlmv;
-use rusqlite::{params, Connection, Result};
+use rusqlite::{Connection, OptionalExtension, Result, params};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct FileRecord {
     pub id: i32,
-    pub file_path: String,
+    pub file_path: PathBuf,
     pub timestamp: i64,
     pub volume: i32,
     pub last_accessed: i64,
 }
 
+#[derive(Clone)]
 pub struct MediaDb {
-    conn: Connection,
+    conn: Arc<Mutex<Connection>>,
 }
 
 impl MediaDb {
-    pub fn open(path: &str) -> Result<Self> {
+    /*
+     * @description Открывает соединение с базой данных и инициализирует таблицу истории воспроизведения.
+     * @param path Путь к файлу базы данных SQLite.
+     */
+    pub fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         let conn = Connection::open(path)?;
-
         conn.execute(
             "CREATE TABLE IF NOT EXISTS playback_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,8 +34,9 @@ impl MediaDb {
         )",
         [],
         )?;
-
-        Ok(MediaDb { conn })
+        Ok(MediaDb {
+            conn: Arc::new(Mutex::new(conn)),
+        })
     }
 
     fn current_time() -> i64 {
@@ -40,87 +46,92 @@ impl MediaDb {
         .as_secs() as i64
     }
 
-    /// Обновляет время доступа и возвращает полную структуру записи
-    pub fn get_playback(&self, path: &str) -> Result<Option<FileRecord>> {
+    /*
+     * @description Возвращает ID записи в базе данных по заданному пути к файлу.
+     * @param path Путь к файлу для поиска.
+     */
+    pub fn get_id_by_path<P: AsRef<Path>>(&self, path: P) -> Result<Option<i32>> {
+        let path_str = path.as_ref().to_string_lossy();
+        let conn = self.conn.lock().unwrap();
+        conn.query_row(
+            "SELECT id FROM playback_history WHERE file_path = ?1",
+            params![path_str],
+            |row| row.get(0),
+        ).optional()
+    }
+
+    /*
+     * @description Получает данные о воспроизведении и обновляет время последнего доступа к файлу.
+     * @param path Путь к медиафайлу.
+     */
+    pub fn get_playback<P: AsRef<Path>>(&self, path: P) -> Result<Option<FileRecord>> {
+        let path_str = path.as_ref().to_string_lossy();
         let now = Self::current_time();
-
-        // 1. Обновляем время последнего обращения
-        let updated = self.conn.execute(
+        let conn = self.conn.lock().unwrap();
+        let updated = conn.execute(
             "UPDATE playback_history SET last_accessed = ?1 WHERE file_path = ?2",
-            params![now, path],
+            params![now, path_str],
         )?;
-
-        // Если записей обновлено 0, значит такого пути нет в базе
         if updated == 0 {
             return Ok(None);
         }
-
-        // 2. Выбираем все данные по этому пути
-        let mut stmt = self.conn.prepare(
-            "SELECT id, file_path, timestamp, volume, last_accessed
-            FROM playback_history WHERE file_path = ?1"
-        )?;
-
-        let mut rows = stmt.query_map(params![path], |row| {
-            Ok(FileRecord {
-                id: row.get(0)?,
-               file_path: row.get(1)?,
-               timestamp: row.get(2)?,
-               volume: row.get(3)?,
-               last_accessed: row.get(4)?,
-            })
-        })?;
-
-        if let Some(record) = rows.next() {
-            return Ok(Some(record?));
-        }
-
-        Ok(None)
+        conn.query_row(
+            "SELECT id, file_path, timestamp, volume, last_accessed FROM playback_history WHERE file_path = ?1",
+            params![path_str],
+            |row| {
+                Ok(FileRecord {
+                    id: row.get(0)?,
+                   file_path: PathBuf::from(row.get::<_, String>(1)?),
+                   timestamp: row.get(2)?,
+                   volume: row.get(3)?,
+                   last_accessed: row.get(4)?,
+                })
+            },
+        ).optional()
     }
 
-    pub fn upload(&self, path: &str, ts: i64, vol: i32) -> Result<()> {
+    /*
+     * @description Сохраняет или обновляет информацию о прогрессе воспроизведения файла.
+     * @param path Путь к файлу.
+     * @param ts Текущая временная метка (прогресс) в секундах.
+     * @param vol Уровень громкости.
+     */
+    pub fn upload<P: AsRef<Path>>(&self, path: P, ts: i64, vol: i32) -> Result<i32> {
+        let path_str = path.as_ref().to_string_lossy();
         let now = Self::current_time();
-
-        // Используем ON CONFLICT для автоматического переключения между INSERT и UPDATE
-        self.conn.execute(
+        let conn = self.conn.lock().unwrap();
+        conn.query_row(
             "INSERT INTO playback_history (file_path, timestamp, volume, last_accessed)
         VALUES (?1, ?2, ?3, ?4)
         ON CONFLICT(file_path) DO UPDATE SET
         timestamp = excluded.timestamp,
         volume = excluded.volume,
-        last_accessed = excluded.last_accessed",
-        params![path, ts, vol, now],
-        )?;
-
-        Ok(())
+        last_accessed = excluded.last_accessed
+        RETURNING id",
+        params![path_str, ts, vol, now],
+        |row| row.get(0),
+        )
     }
 
+    /*
+     * @description Возвращает список последних воспроизведенных файлов.
+     * @param n Количество записей для выборки.
+     */
     pub fn get_recent(&self, n: usize) -> Result<Vec<FileRecord>> {
-        // Подготавливаем запрос на выборку всех полей
-        let mut stmt = self.conn.prepare(
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
             "SELECT id, file_path, timestamp, volume, last_accessed
-            FROM playback_history
-            ORDER BY last_accessed DESC
-            LIMIT ?1"
+            FROM playback_history ORDER BY last_accessed DESC LIMIT ?1",
         )?;
-
-        // Маппим строки БД в структуры Rust
         let records_iter = stmt.query_map(params![n as i64], |row| {
             Ok(FileRecord {
                 id: row.get(0)?,
-               file_path: row.get(1)?,
+               file_path: PathBuf::from(row.get::<_, String>(1)?),
                timestamp: row.get(2)?,
                volume: row.get(3)?,
                last_accessed: row.get(4)?,
             })
         })?;
-
-        // Собираем итератор в вектор, обрабатывая возможные ошибки каждой строки
-        let mut records = Vec::new();
-        for record in records_iter {
-            records.push(record?);
-        }
-
-        Ok(records)
+        records_iter.collect()
     }
 }
