@@ -8,6 +8,8 @@ pub enum LOCALEMSG {
     DBuploadFail,
     DBgetIDFail,
     ThumbCrate,
+    FileCreated,
+    DirEmptyChekFail,
 }
 
 
@@ -27,6 +29,8 @@ pub fn translate(msg: LOCALEMSG) -> &'static str {
         LOCALEMSG::DBuploadFail => "Ошибкак добавления записи в базу данных",
         LOCALEMSG::DBgetIDFail => "Ошибка получения препросмотра, используем дефолтный ассет",
         LOCALEMSG::ThumbCrate => "Ошибка создания файла предпросмотра",
+        LOCALEMSG::FileCreated => "Создан файл",
+        LOCALEMSG::DirEmptyChekFail => "Неудалось проверить содержимое директории",
     }
     } else {
         match msg {
@@ -37,6 +41,8 @@ pub fn translate(msg: LOCALEMSG) -> &'static str {
         LOCALEMSG::DBuploadFail => "Error: can not upload new entity in data base",
         LOCALEMSG::DBgetIDFail => "Error: can not get prewie, using default asset",
         LOCALEMSG::ThumbCrate => "Error: can not create prewie",
+        LOCALEMSG::FileCreated => "File created",
+        LOCALEMSG::DirEmptyChekFail => "Error: can not check directory",
     }
     }
 }

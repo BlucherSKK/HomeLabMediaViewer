@@ -3,179 +3,278 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HLMV - Telemetry Player</title>
+    <title>HLMV - {{PATH}}</title>
     <style>
         :root {
-            --accent-color: #ce3939;
-            --bg-color: #0f0f0f;
-            --panel-bg: rgba(26, 26, 26, 0.9);
+            --bg-dark: #1a1a1a;
+            --bg-card: #2a2a2a;
+            --bg-hover: #3a3a3a;
+            --bg-header: #333;
+            --border-header: #444;
+            --accent: #ce3939;
+            --text-main: #ffffff;
+            --text-muted: #cccccc;
+            --glass: rgba(255, 255, 255, 0.05);
+            --matrix-green: #00ff41;
         }
 
         body {
-            background-color: var(--bg-color);
-            color: #eeeeee;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
             margin: 0;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
+            height: 100vh;
+            overflow: hidden;
         }
 
-        .player-container {
-            width: 90%;
-            max-width: 1000px;
-            position: relative;
+        /* Шапка в стиле твоего менеджера */
+        .header {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: var(--bg-header);
+            border-bottom: 2px solid var(--border-header);
+            z-index: 100;
+        }
+
+        .header a#back {
+            padding: 8px 20px;
+            border-radius: 2rem;
+            color: white;
+            text-decoration: none;
+            background: var(--glass);
+            transition: all 0.2s;
+            font-size: 0.9rem;
+            border: 1px solid transparent;
+        }
+
+        .header a#back:hover {
+            background: var(--bg-hover);
+            border-color: var(--border-header);
+        }
+
+        .header #path {
+            margin-left: 20px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-family: monospace;
+            opacity: 0.8;
+        }
+
+        /* Контейнер плеера */
+        .main-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            background: radial-gradient(circle at center, #252525 0%, #0f0f0f 100%);
+        }
+
+        .player-wrapper {
+            width: 100%;
+            max-width: 1200px;
             background: #000;
-            border-radius: 12px;
+            border-radius: 2rem; /* Твой стиль */
             overflow: hidden;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            position: relative;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8);
+            border: 1px solid var(--border-header);
         }
 
         video {
             width: 100%;
             display: block;
             outline: none;
+            aspect-ratio: 16 / 9;
         }
 
         /* Панель телеметрии */
         #telemetry-overlay {
             position: absolute;
-            top: 20px;
-            left: 20px;
-            background: var(--panel-bg);
-            padding: 15px;
-            border-left: 4px solid var(--accent-color);
-            border-radius: 4px;
-            font-family: 'Courier New', Courier, monospace;
+            top: 25px;
+            left: 25px;
+            background: rgba(15, 15, 15, 0.75);
+            backdrop-filter: blur(12px);
+            padding: 18px;
+            border-radius: 1.5rem;
+            border-left: 4px solid var(--accent);
+            font-family: 'Consolas', 'Courier New', monospace;
             font-size: 13px;
-            pointer-events: none; /* Чтобы не мешать кликам по видео */
             z-index: 10;
-            backdrop-filter: blur(5px);
-            transition: opacity 0.3s;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
         }
 
         .stat-line {
-            margin: 5px 0;
             display: flex;
             justify-content: space-between;
-            gap: 20px;
+            gap: 25px;
+            margin: 5px 0;
         }
 
-        .stat-value {
-            color: #00ff41; /* "Матричный" зеленый */
+        .stat-label { color: var(--text-muted); }
+        .stat-value { color: var(--matrix-green); font-weight: bold; }
+
+        .telemetry-title {
+            color: var(--accent);
             font-weight: bold;
+            margin-bottom: 10px;
+            display: block;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
         }
 
-        h1 {
-            font-weight: 300;
-            color: #888;
-            margin-bottom: 20px;
-            letter-spacing: 2px;
-        }
-
-        .controls-hint {
-            margin-top: 15px;
-            font-size: 12px;
-            color: #555;
+        /* Признак того, что данные сохраняются */
+        #save-indicator {
+            position: absolute;
+            bottom: 20px;
+            right: 25px;
+            font-size: 10px;
+            color: var(--matrix-green);
+            opacity: 0;
+            transition: opacity 0.3s;
+            text-transform: uppercase;
         }
     </style>
 </head>
 <body>
 
-    <h1>HOME LAB MEDIA VIEWER</h1>
-
-    <div class="player-container">
-        <div id="telemetry-overlay">
-            <div style="color: var(--accent-color); margin-bottom: 8px; font-weight: bold;">LIVE TELEMETRY</div>
-            <div class="stat-line">
-                <span>Network Bitrate:</span>
-                <span id="bitrate" class="stat-value">0.00 Mbps</span>
-            </div>
-            <div class="stat-line">
-                <span>Buffer Health:</span>
-                <span id="buffer" class="stat-value">0.00s</span>
-            </div>
-            <div class="stat-line">
-                <span>Resolution:</span>
-                <span id="res" class="stat-value">Detecting...</span>
-            </div>
-        </div>
-
-        <video id="v" controls playsinline preload="metadata">
-            <source src="/video" type="video/mp4">
-            Ваш браузер не поддерживает HTML5 видео.
-        </video>
+    <div class="header">
+        <a href="/" id="back">← К ФАЙЛАМ</a>
+        <div id="path">ROOT/{{PATH}}</div>
     </div>
 
-    <p class="controls-hint">Powered by Rust & Rocket</p>
+    <div class="main-content">
+        <div class="player-wrapper" id="p-wrap">
+            <div id="telemetry-overlay">
+                <span class="telemetry-title">Live Stream Data</span>
+                <div class="stat-line">
+                    <span class="stat-label">Net Speed:</span>
+                    <span id="bitrate" class="stat-value">0.00 Mbps</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Buffer:</span>
+                    <span id="buffer" class="stat-value">0.00s</span>
+                </div>
+                <div class="stat-line">
+                    <span class="stat-label">Resolution:</span>
+                    <span id="res" class="stat-value">Detecting...</span>
+                </div>
+            </div>
+
+            <div id="save-indicator">Syncing state...</div>
+
+            <video id="v" controls playsinline>
+                <source src="/stream/{{PATH}}" type="video/mp4">
+                Ваш браузер не поддерживает видео.
+            </video>
+        </div>
+    </div>
 
     <script>
         const video = document.getElementById('v');
-        const bitrateEl = document.getElementById('bitrate');
-        const bufferEl = document.getElementById('buffer');
-        const resEl = document.getElementById('res');
+        const mediaPath = "{{PATH}}";
+        const saveInd = document.getElementById('save-indicator');
 
+        // --- 1. ТЕЛЕМЕТРИЯ ---
         let lastBytes = 0;
         let lastTime = performance.now();
 
-        // Функция для расчета битрейта загрузки
-        function updateStats() {
-            // 1. Расчет разрешения
+        function updateTelemetry() {
+            // Разрешение
             if (video.videoWidth > 0) {
-                resEl.innerText = `${video.videoWidth}x${video.videoHeight}`;
+                document.getElementById('res').innerText = `${video.videoWidth}x${video.videoHeight}`;
             }
 
-            // 2. Расчет буфера
+            // Буфер
             if (video.buffered.length > 0) {
-                const currentPos = video.currentTime;
-                let bufferEnd = 0;
-
-                // Ищем текущий сегмент буфера
+                const now = video.currentTime;
+                let health = 0;
                 for (let i = 0; i < video.buffered.length; i++) {
-                    if (video.buffered.start(i) < currentPos && video.buffered.end(i) > currentPos) {
-                        bufferEnd = video.buffered.end(i);
+                    if (video.buffered.start(i) <= now && video.buffered.end(i) >= now) {
+                        health = video.buffered.end(i) - now;
                         break;
                     }
                 }
-                const health = bufferEnd <= currentPos ? 0 : bufferEnd - currentPos;
-                bufferEl.innerText = health.toFixed(2) + 's';
+                document.getElementById('buffer').innerText = health.toFixed(2) + 's';
             }
 
-            // 3. Расчет сетевого битрейта (через Video Performance API)
-            if (window.performance && video.getVideoPlaybackQuality) {
+            // Расчет сетевого битрейта (Performance API)
+            const entries = performance.getEntriesByType('resource');
+            // Ищем последний чанк видео стрима
+            const vStream = entries.filter(e => e.name.includes('/stream/')).pop();
+
+            if (vStream && vStream.transferSize > 0) {
                 const now = performance.now();
-                const duration = (now - lastTime) / 1000; // в секундах
+                const deltaT = (now - lastTime) / 1000;
 
-                // Пытаемся получить данные о загруженных байтах из Resource Timing
-                const entries = performance.getEntriesByName(video.currentSrc);
-                const lastEntry = entries[entries.length - 1];
-
-                if (lastEntry && lastEntry.transferSize > 0) {
-                    const currentBytes = lastEntry.transferSize;
-                    const diff = currentBytes - lastBytes;
-
-                    if (diff > 0 && duration > 0) {
-                        const mbps = ((diff * 8) / (1024 * 1024) / duration).toFixed(2);
-                        bitrateEl.innerText = mbps + ' Mbps';
+                if (deltaT >= 0.8) { // Обновляем почти каждую секунду
+                    const deltaB = vStream.transferSize - lastBytes;
+                    if (deltaB > 0) {
+                        const mbps = ((deltaB * 8) / (1024 * 1024) / deltaT).toFixed(2);
+                        document.getElementById('bitrate').innerText = mbps + ' Mbps';
+                        lastBytes = vStream.transferSize;
+                        lastTime = now;
                     }
-                    lastBytes = currentBytes;
                 }
-                lastTime = now;
+            } else if (vStream && vStream.transferSize === 0) {
+                document.getElementById('bitrate').innerText = "Cached";
             }
         }
 
-        // Обновляем каждые 500мс для плавности
-        setInterval(updateStats, 500);
+        setInterval(updateTelemetry, 1000);
 
-        // Скрывать телеметрию, если мышь долго не двигается (опционально)
-        let timeout;
-        document.querySelector('.player-container').onmousemove = () => {
-            document.getElementById('telemetry-overlay').style.opacity = 1;
-            clearTimeout(timeout);
-            timeout = setTimeout(() => {
-                document.getElementById('telemetry-overlay').style.opacity = 0.2;
+        // --- 2. СОХРАНЕНИЕ / ЗАГРУЗКА СОСТОЯНИЯ ---
+        async function loadSession() {
+            try {
+                const r = await fetch(`/info/${mediaPath}`);
+                if (r.ok) {
+                    const data = await r.json();
+                    if (data.timestamp) video.currentTime = data.timestamp;
+                    if (data.volume) video.volume = data.volume / 100;
+                    console.log("Session restored:", data);
+                }
+            } catch (e) {
+                console.warn("Could not load session info");
+            }
+        }
+
+        function saveSession() {
+            const data = {
+                timestamp: video.currentTime,
+                volume: Math.round(video.volume * 100)
+            };
+
+            // Показываем индикатор
+            saveInd.style.opacity = 1;
+            setTimeout(() => saveInd.style.opacity = 0, 1500);
+
+            // Отправляем через Beacon (работает даже при закрытии вкладки)
+            // Оборачиваем в Blob, чтобы Rocket распознал JSON
+            const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+            navigator.sendBeacon(`/info-upload/${mediaPath}`, blob);
+        }
+
+        // События
+        video.addEventListener('loadedmetadata', loadSession);
+        window.addEventListener('beforeunload', saveSession);
+        setInterval(saveSession, 60000); // Раз в минуту
+
+        // --- 3. ИНТЕРФЕЙС ---
+        let hideTimeout;
+        const overlay = document.getElementById('telemetry-overlay');
+        const wrapper = document.getElementById('p-wrap');
+
+        wrapper.onmousemove = () => {
+            overlay.style.opacity = 1;
+            clearTimeout(hideTimeout);
+            hideTimeout = setTimeout(() => {
+                overlay.style.opacity = 0.15; // Полупрозрачность в покое
             }, 3000);
         };
     </script>

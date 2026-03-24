@@ -24,12 +24,25 @@ body {
 
 /* Шапка */
 .header {
-    text-align: center;
+    display: flex;
+    flow: horizontal;
     padding: 15px 20px;
     background-color: var(--bg-header);
     font-size: 1.5rem;
     font-weight: 500;
     border-bottom: 2px solid var(--border-header);
+}
+.header a#back {
+    border-radius: 2rem;
+    color: white;
+    text-decoration: none;
+}
+.header a#back:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+.header a#path {
+    margin-left: auto;
+    margin-right: 50%;
 }
 
 /* Сетка элементов */
@@ -44,23 +57,39 @@ body {
     margin: 0 20% 0 20%;
 }
 
-/* Карточка файла/папки */
+/* Делаем ссылку блоком, чтобы она растянулась на всю ширину и высоту */
+.item a {
+    display: flex;          /* Включаем Flexbox */
+    flex-direction: column; /* Элементы идут друг под другом (колонка) */
+    align-items: center;    /* Центрируем элементы по горизонтали (ось X) */
+    justify-content: center;/* Центрируем элементы по вертикали (ось Y) */
+    text-align: center;     /* Центрируем текст внутри блока .name */
+
+    width: 100%;
+    height: 100%;
+    text-decoration: none;  /* Убираем подчеркивание ссылки */
+    color: inherit;         /* Наследуем цвет текста */
+}
+
+/* Опционально: добавляем курсор и эффект при наведении, чтобы было понятно, что это кнопка */
 .item {
-    display: block;
-    background-color: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 10px;
-    text-align: center;
-    text-decoration: none;
-    color: var(--text-main);
-    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+    border-radius: 2rem;
+    border: --border-color solid;
+    cursor: pointer;
+    transition: background-color 0.2s;
 }
 
 .item:hover {
-    background-color: var(--bg-hover);
-    border-color: var(--border-hover);
-    transform: translateY(-2px);
+    background-color: rgba(255, 255, 255, 0.05); /* Легкий подсвет при наведении */
+}
+
+/* Убираем лишние рамки (если они были для теста) и настраиваем обертку */
+.preview-wrapper {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
 }
 
 .item:active {
