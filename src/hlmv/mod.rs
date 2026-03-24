@@ -4,6 +4,7 @@ pub mod config;
 pub mod lang;
 pub mod browser;
 pub mod thumb;
+pub mod idhandler;
 
 use std::env;
 use std::path::PathBuf;

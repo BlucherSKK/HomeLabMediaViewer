@@ -6,6 +6,7 @@ use rocket::response::content::{RawCss, RawHtml};
 use rocket::fs::NamedFile;
 use rocket::State;
 use crate::hlmv::db::MediaDb;
+use crate::hlmv::idhandler::{get_info_byid, player_byid, serve_media_byid, stream_byid, upload_info_byid};
 use rocket::serde::{json::Json, Deserialize, Serialize};
 use rocket::http::Header;
 use rocket::{Request, Response};
@@ -127,7 +128,8 @@ fn rocket() -> _ {
         browser_dir,
         serve_media,
         serve_cache,
-        stream, get_info, upload_info, player
+        stream, get_info, upload_info, player,
+        serve_media_byid, stream_byid, get_info_byid, upload_info_byid, player_byid
     ])
     .mount("/api", routes![
         upload_handler

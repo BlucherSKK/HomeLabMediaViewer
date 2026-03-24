@@ -10,6 +10,7 @@ pub enum LOCALEMSG {
     ThumbCrate,
     FileCreated,
     DirEmptyChekFail,
+    ParseEr,
 }
 
 
@@ -31,6 +32,7 @@ pub fn translate(msg: LOCALEMSG) -> &'static str {
         LOCALEMSG::ThumbCrate => "Ошибка создания файла предпросмотра",
         LOCALEMSG::FileCreated => "Создан файл",
         LOCALEMSG::DirEmptyChekFail => "Неудалось проверить содержимое директории",
+        LOCALEMSG::ParseEr => "Ошибка парсинга",
     }
     } else {
         match msg {
@@ -43,6 +45,7 @@ pub fn translate(msg: LOCALEMSG) -> &'static str {
         LOCALEMSG::ThumbCrate => "Error: can not create prewie",
         LOCALEMSG::FileCreated => "File created",
         LOCALEMSG::DirEmptyChekFail => "Error: can not check directory",
+        LOCALEMSG::ParseEr => "Error: can not parse string",
     }
     }
 }

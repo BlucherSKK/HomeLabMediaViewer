@@ -2,7 +2,7 @@ use std::path::{Path, PathBuf};
 use rocket::response::content::RawHtml;
 use rocket::State;
 use crate::hlmv::{
-    db::MediaDb, fs::{abspath, dir_is_empty}, lang::translate, thumb::{get_file_type, get_thumb, FileType}
+    db::MediaDb, fs::{abspath, dir_is_empty, is_spesial_file}, lang::translate, thumb::{FileType, get_file_type, get_thumb}
 };
 
 /*
@@ -36,6 +36,7 @@ pub fn render_browser(rel_path: PathBuf, db: &State<MediaDb>) -> RawHtml<String>
             let item_rel_str = item_rel_path.to_string_lossy();
 
             if p.is_dir() {
+
                 let thumb_url = format!("/cache/{}",
                                        if dir_is_empty(&p).expect(translate(crate::hlmv::lang::LOCALEMSG::ElfDirUnfound))
                                        {"empty-dir.png"} else {"dir.png"});
@@ -56,6 +57,12 @@ pub fn render_browser(rel_path: PathBuf, db: &State<MediaDb>) -> RawHtml<String>
                     item_rel_str, preview, name
                 ));
             } else {
+                let mut root_live = "live";
+                let mut root_media = "media-files";
+
+                if is_spesial_file(&p) {
+                    item_rel_str =
+                }
                 if name.starts_with('.') { continue; }
 
                 let thumb_name = get_thumb(db, &p);
@@ -69,27 +76,27 @@ pub fn render_browser(rel_path: PathBuf, db: &State<MediaDb>) -> RawHtml<String>
                     FileType::Video => {
                         items_html.push_str(&format!(
                             r#"<div class="item" href>
-                            <a href="/live/{}">
+                            <a href="/{}/{}">
                             <div class="preview-wrapper">
                             {}
                             </div>
                             <div class="name">{}</div>
                             </a>
                             </div>"#,
-                            item_rel_str, preview, name
+                            root_live, item_rel_str, preview, name
                         ));
                     },
                     _ => {
                         items_html.push_str(&format!(
                             r#"<div class="item" href>
-                            <a href="/media-files/{}">
+                            <a href="/{}/{}">
                             <div class="preview-wrapper">
                             {}
                             </div>
                             <div class="name">{}</div>
                             </a>
                             </div>"#,
-                            item_rel_str, preview, name
+                            root_media, item_rel_str, preview, name
                         ));
                     }
                 }

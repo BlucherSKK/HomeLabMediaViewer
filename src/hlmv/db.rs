@@ -60,6 +60,18 @@ impl MediaDb {
         ).optional()
     }
 
+    pub fn get_path_by_id(&self, id: i32) -> Result<Option<PathBuf>> {
+        let conn = self.conn.lock().unwrap();
+        conn.query_row(
+            "SELECT file_path FROM playback_history WHERE id = ?1",
+            params![id],
+            |row| {
+                let path_str: String = row.get(0)?;
+                Ok(PathBuf::from(path_str))
+            },
+        ).optional()
+    }
+
     /*
      * @description Получает данные о воспроизведении и обновляет время последнего доступа к файлу.
      * @param path Путь к медиафайлу.
@@ -114,6 +126,29 @@ impl MediaDb {
     }
 
     /*
+     * @description Обновляет информацию о прогрессе воспроизведения файла по его ID.
+     * @param id Идентификатор записи в БД.
+     * @param ts Текущая временная метка (прогресс) в секундах.
+     * @param vol Уровень громкости.
+     */
+    pub fn upload_by_id(&self, id: i32, ts: i64, vol: i32) -> Result<()> {
+        let now = Self::current_time();
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "UPDATE playback_history
+            SET timestamp = ?1,
+            volume = ?2,
+            last_accessed = ?3
+            WHERE id = ?4"
+        )?;
+        let updated_rows = stmt.execute(params![ts, vol, now, id])?;
+        if updated_rows == 0 {
+            return Err(rusqlite::Error::QueryReturnedNoRows);
+        }
+        Ok(())
+    }
+
+    /*
      * @description Возвращает список последних воспроизведенных файлов.
      * @param n Количество записей для выборки.
      */
@@ -133,5 +168,35 @@ impl MediaDb {
             })
         })?;
         records_iter.collect()
+    }
+
+    /*
+     * @description Получает полную информацию о файле по его ID и обновляет время доступа.
+     * @param id Идентификатор записи.
+     */
+    pub fn get_info_by_id(&self, id: i32) -> Result<Option<FileRecord>> {
+        let now = Self::current_time();
+        let conn = self.conn.lock().unwrap();
+        let updated = conn.execute(
+            "UPDATE playback_history SET last_accessed = ?1 WHERE id = ?2",
+            params![now, id],
+        )?;
+        if updated == 0 {
+            return Ok(None);
+        }
+        conn.query_row(
+            "SELECT id, file_path, timestamp, volume, last_accessed
+            FROM playback_history WHERE id = ?1",
+            params![id],
+            |row| {
+                Ok(FileRecord {
+                    id: row.get(0)?,
+                   file_path: PathBuf::from(row.get::<_, String>(1)?),
+                   timestamp: row.get(2)?,
+                   volume: row.get(3)?,
+                   last_accessed: row.get(4)?,
+                })
+            },
+        ).optional()
     }
 }
