@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 use std::io;
-use rocket::response::content::RawHtml;
+use rocket::response::content::{RawCss, RawHtml};
 use rocket::fs::NamedFile;
 use rocket::State;
 use crate::hlmv::db::MediaDb;
@@ -32,6 +32,11 @@ pub fn browser_root(db: &State<MediaDb>) -> RawHtml<String> {
 #[get("/browser/<path..>")]
 pub fn browser_dir(path: PathBuf, db: &State<MediaDb>) -> RawHtml<String> {
     render_browser(path, db)
+}
+
+#[get("/style")]
+pub fn get_style() -> RawCss<&'static str>{
+    RawCss(include_str!("web/style.css"))
 }
 
 /*
@@ -65,6 +70,7 @@ fn rocket() -> _ {
     rocket::build()
     .manage(app.db)
     .mount("/", routes![
+        get_style,
         browser_root,
         browser_dir,
         serve_media,

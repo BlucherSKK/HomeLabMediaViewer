@@ -3,23 +3,14 @@
 <head>
     <meta charset="utf-8">
     <title>Media Browser</title>
-    <style>
-        body { font-family: sans-serif; background: #1a1a1a; color: white; margin: 0; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; padding: 20px; }
-        .item { border: 1px solid #333; background: #2a2a2a; padding: 10px; text-align: center;
-                text-decoration: none; color: white; border-radius: 8px; transition: 0.2s; display: block; }
-        .item:hover { background: #3a3a3a; border-color: #555; }
-        .folder { background: #2c3e50; font-weight: bold; }
-        img, video { max-width: 100%; max-height: 120px; border-radius: 4px; object-fit: cover; }
-        .name { font-size: 0.8em; margin-top: 8px; word-break: break-all; color: #ccc; }
-        .header { padding: 15px 20px; background: #333; font-size: 1.2em; border-bottom: 2px solid #444; }
-        .file-icon { font-size: 3em; padding: 10px; }
-    </style>
+    <link rel="stylesheet" href="/style">
 </head>
 <body>
-    <div class="header">Путь: /{{PATH}}</div>
-    <div class="grid">
-        {{CONTENT}}
+    <div class="header">/{{PATH}}</div>
+    <div class="grid-map">
+        <div class="grid">
+            {{CONTENT}}
+        </div>
     </div>
 </body>
 </html>

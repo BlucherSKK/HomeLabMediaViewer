@@ -1,0 +1,97 @@
+/* Переменные для удобной настройки цветов */
+:root {
+    --bg-dark: #1a1a1a;
+    --bg-card: #2a2a2a;
+    --bg-hover: #3a3a3a;
+    --bg-folder: #2c3e50;
+    --bg-header: #333;
+    --border-color: #333;
+    --border-hover: #555;
+    --border-header: #444;
+    --text-main: #ffffff;
+    --text-muted: #cccccc;
+}
+
+body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    margin: 0;
+    line-height: 1.5;
+}
+
+
+
+/* Шапка */
+.header {
+    text-align: center;
+    padding: 15px 20px;
+    background-color: var(--bg-header);
+    font-size: 1.5rem;
+    font-weight: 500;
+    border-bottom: 2px solid var(--border-header);
+}
+
+/* Сетка элементов */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 15px;
+    padding: 20px;
+}
+
+.grid-map {
+    margin: 0 20% 0 20%;
+}
+
+/* Карточка файла/папки */
+.item {
+    display: block;
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+    text-decoration: none;
+    color: var(--text-main);
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+
+.item:hover {
+    background-color: var(--bg-hover);
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+}
+
+.item:active {
+    transform: translateY(0);
+}
+
+/* Специфично для папок */
+.folder {
+    background-color: var(--bg-folder);
+    font-weight: bold;
+}
+
+/* Иконки и превью */
+.file-icon {
+    font-size: 3rem;
+    padding: 10px;
+    display: block;
+}
+
+img,
+video {
+    max-width: 100%;
+    max-height: 120px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+/* Название файла */
+.name {
+    font-size: 0.85rem;
+    margin-top: 8px;
+    word-break: break-all;
+    color: var(--text-muted);
+}
