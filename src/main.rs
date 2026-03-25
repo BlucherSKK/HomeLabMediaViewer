@@ -103,7 +103,23 @@ fn upload_info(path: PathBuf, info: Json<MediaInfo>) {
 async fn player(path: PathBuf) -> Option<rocket::response::content::RawHtml<String>> {
     let html = include_str!("./web/index.html");
     // Вставляем путь в JS для удобства (простая замена в шаблоне)
-    let processed_html = html.replace("{{PATH}}", path.to_str().unwrap_or(""));
+    let processed_html = html
+    .replace("{{MEDIA_ID}}", path.to_str().expect(
+        translate(hlmv::lang::LOCALEMSG::ParseEr)
+    ))
+    .replace("{{STREAM_PATH}}", format!("/stream/{}", path.to_str().expect(
+        translate(hlmv::lang::LOCALEMSG::ParseEr)
+    )).as_str())
+    .replace("{{MEDIA_PATH}}", path.to_str().expect(
+        translate(hlmv::lang::LOCALEMSG::ParseEr)
+    ))
+    .replace("{{INFO_PATH}}", format!("/info/{}", path.to_str().expect(
+        translate(hlmv::lang::LOCALEMSG::ParseEr)
+    )).as_str())
+    .replace("{{INFO_UPLOAD_PATH}}", format!("/info-upload/{}", path.to_str().expect(
+        translate(hlmv::lang::LOCALEMSG::ParseEr)
+    )).as_str())
+    ;
     Some(rocket::response::content::RawHtml(processed_html))
 }
 

@@ -146,7 +146,6 @@
 
     <div class="header">
         <a href="/" id="back">← К ФАЙЛАМ</a>
-        <div id="path">ROOT/{{PATH}}</div>
     </div>
 
     <div class="main-content">
@@ -170,7 +169,7 @@
             <div id="save-indicator">Syncing state...</div>
 
             <video id="v" controls playsinline>
-                <source src="/stream/{{PATH}}" type="video/mp4">
+                <source src="{{STREAM_PATH}}" type="video/mp4">
                 Ваш браузер не поддерживает видео.
             </video>
         </div>
@@ -178,7 +177,7 @@
 
     <script>
         const video = document.getElementById('v');
-        const mediaPath = "{{PATH}}";
+        const mediaPath = "{{MEDIA_PATH}}";
         const saveInd = document.getElementById('save-indicator');
 
         // --- 1. ТЕЛЕМЕТРИЯ ---
@@ -207,7 +206,7 @@
             // Расчет сетевого битрейта (Performance API)
             const entries = performance.getEntriesByType('resource');
             // Ищем последний чанк видео стрима
-            const vStream = entries.filter(e => e.name.includes('/stream/')).pop();
+            const vStream = entries.filter(e => e.name.includes('{{STREAM_PATH}}')).pop();
 
             if (vStream && vStream.transferSize > 0) {
                 const now = performance.now();
@@ -232,7 +231,7 @@
         // --- 2. СОХРАНЕНИЕ / ЗАГРУЗКА СОСТОЯНИЯ ---
         async function loadSession() {
             try {
-                const r = await fetch(`/info/${mediaPath}`);
+                const r = await fetch(`{{INFO_PATH}}${mediaPath}`);
                 if (r.ok) {
                     const data = await r.json();
                     if (data.timestamp) video.currentTime = data.timestamp;
@@ -257,7 +256,7 @@
             // Отправляем через Beacon (работает даже при закрытии вкладки)
             // Оборачиваем в Blob, чтобы Rocket распознал JSON
             const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-            navigator.sendBeacon(`/info-upload/${mediaPath}`, blob);
+            navigator.sendBeacon(`{{INFO_UPLOAD_PATH}}${mediaPath}`, blob);
         }
 
         // События

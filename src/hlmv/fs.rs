@@ -4,10 +4,15 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
+
 /// @description Преобразует относительный путь в абсолютный относительно исполняемого файла.
 /// @param rel_path Относительный путь.
 pub fn abspath(rel_path: &str) -> PathBuf {
-    let mut path = env::current_exe().unwrap_or_else(|_| PathBuf::from("."));
+    let mut path = if cfg!(feature = "example") {
+        env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join("examples")
+    } else {
+        env::current_exe().unwrap_or_else(|_| PathBuf::from("."))
+    };
     path.pop();
     path.push(rel_path);
     path
@@ -31,7 +36,7 @@ pub fn dir_is_empty(path: &Path) -> io::Result<bool> {
 }
 
 pub fn is_spesial_file(path: &Path) -> bool {
-    let forbidden = &['!', '@', '#', '$'];
+    let forbidden = &['!', '@', '#', '$', ' '];
     if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
         return file_name.chars().any(|c| forbidden.contains(&c));
     }

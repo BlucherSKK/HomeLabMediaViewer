@@ -17,11 +17,12 @@ pub fn render_browser(rel_path: PathBuf, db: &State<MediaDb>) -> RawHtml<String>
     let mut items_html = String::new();
     let mut back = String::new();
 
+
     if rel_path.as_os_str() != "" && rel_path.as_os_str() != "." {
         let parent = rel_path.parent().unwrap_or(Path::new("")).to_string_lossy();
         back.push_str(&format!(
-            r#"<a href="/browser/{}" id="back">📁 [Назад]</a>"#,
-            parent
+            r#"<a href="/browser/{}/" id="back">📁 [{}]</a>"#,
+            parent, translate(crate::hlmv::lang::LOCALEMSG::UI_Back)
         ));
     }
 
@@ -33,7 +34,9 @@ pub fn render_browser(rel_path: PathBuf, db: &State<MediaDb>) -> RawHtml<String>
             let p = entry.path();
             let name = p.file_name().unwrap_or_default().to_string_lossy();
             let item_rel_path = p.strip_prefix(&base_dir).unwrap_or(&p);
-            let item_rel_str = item_rel_path.to_string_lossy();
+            let mut item_rel_str = item_rel_path.to_str()
+            .expect(translate(crate::hlmv::lang::LOCALEMSG::ParseEr))
+            .to_string();
 
             if p.is_dir() {
 
@@ -41,7 +44,7 @@ pub fn render_browser(rel_path: PathBuf, db: &State<MediaDb>) -> RawHtml<String>
                                        if dir_is_empty(&p).expect(translate(crate::hlmv::lang::LOCALEMSG::ElfDirUnfound))
                                        {"empty-dir.png"} else {"dir.png"});
                 let preview = format!(
-                    r#"<img src="{}" loading="lazy" alt="{}" onerror="this.src='/static/default.jpg'">"#,
+                    r#"<img src="{}" loading="lazy" alt="{}" onerror="this.src='/cache/default.png'">"#,
                     thumb_url, name
                 );
 
@@ -58,19 +61,25 @@ pub fn render_browser(rel_path: PathBuf, db: &State<MediaDb>) -> RawHtml<String>
                 ));
             } else {
                 let mut root_live = "live";
-                let mut root_media = "media-files";
+                let root_media = "media-files";
 
-                if is_spesial_file(&p) {
-                    item_rel_str =
-                }
+
                 if name.starts_with('.') { continue; }
 
-                let thumb_name = get_thumb(db, &p);
+                let id = db.get_id_by_path(item_rel_path)
+                    .expect(translate(crate::hlmv::lang::LOCALEMSG::DataBaseEr));
+                let thumb_name = get_thumb(db, item_rel_path);
+                if is_spesial_file(&p) {
+                    item_rel_str = id.to_string();
+                    root_live = "live-byid";
+                }
+
                 let thumb_url = format!("/cache/{}", thumb_name);
                 let preview = format!(
-                    r#"<img src="{}" loading="lazy" alt="{}" onerror="this.src='/static/default.jpg'">"#,
+                    r#"<img src="{}" loading="lazy" alt="{}" onerror="this.src='/cache/default.png'">"#,
                     thumb_url, name
                 );
+                println!("{}", preview);
 
                 match  get_file_type(&p){
                     FileType::Video => {

@@ -3,7 +3,7 @@ use crate::hlmv::fs::abspath;
 use crate::hlmv::lang::{translate, LOCALEMSG};
 use std::fs;
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 const TEXT_ICON: &[u8] = include_bytes!("../assets/text.png");
@@ -58,14 +58,7 @@ pub fn get_thumb(db: &MediaDb, rel_path: &Path) -> String {
         FileType::Unknown => "default.png".to_string(),
         _ => {
             let id = db.get_id_by_path(rel_path)
-            .ok()
-            .flatten()
-            .unwrap_or_else(|| {
-                db.upload(rel_path, 0, 100).unwrap_or_else(|_| {
-                    println!("{}", translate(LOCALEMSG::DBgetIDFail));
-                    0
-                })
-            });
+            .expect(translate(LOCALEMSG::DataBaseEr));
 
             let thumb_name = format!("{}.jpg", id);
             let cache_dir = abspath("cache");
@@ -98,9 +91,19 @@ fn init_icon<P: AsRef<Path>>(path: P, buff: &[u8]) -> std::io::Result<()> {
 
 fn create_thumbnail(src: &Path, dst: &Path) -> std::io::Result<()> {
 
-    match get_file_type(src) {
+    let msrc: PathBuf = if src.is_absolute() {
+        src.to_path_buf()
+    } else {
+        abspath("media").join(src)
+    };
+
+    if !msrc.exists() {
+        return Err(std::io::Error::new(std::io::ErrorKind::NotFound, format!("File not found: {:?}", msrc)));
+    }
+
+    match get_file_type(&msrc) {
         FileType::Image => {
-            let img = image::open(src)
+            let img = image::open(msrc)
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
             img.thumbnail(150, 150)
             .save_with_format(dst, image::ImageFormat::Jpeg)
@@ -111,7 +114,7 @@ fn create_thumbnail(src: &Path, dst: &Path) -> std::io::Result<()> {
             let output = Command::new("ffmpeg")
             .args([
                 "-y",
-                "-i", src.to_str().unwrap(),
+                "-i", msrc.to_str().unwrap(),
                   "-ss", "00:00:01",
                   "-frames:v", "1",
                   "-vf", "scale=150:150:force_original_aspect_ratio=increase,crop=150:150",

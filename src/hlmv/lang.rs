@@ -11,6 +11,7 @@ pub enum LOCALEMSG {
     FileCreated,
     DirEmptyChekFail,
     ParseEr,
+    UI_Back,
 }
 
 
@@ -33,6 +34,7 @@ pub fn translate(msg: LOCALEMSG) -> &'static str {
         LOCALEMSG::FileCreated => "Создан файл",
         LOCALEMSG::DirEmptyChekFail => "Неудалось проверить содержимое директории",
         LOCALEMSG::ParseEr => "Ошибка парсинга",
+        LOCALEMSG::UI_Back => "Назад",
     }
     } else {
         match msg {
@@ -46,6 +48,7 @@ pub fn translate(msg: LOCALEMSG) -> &'static str {
         LOCALEMSG::FileCreated => "File created",
         LOCALEMSG::DirEmptyChekFail => "Error: can not check directory",
         LOCALEMSG::ParseEr => "Error: can not parse string",
+        LOCALEMSG::UI_Back => "Back",
     }
     }
 }

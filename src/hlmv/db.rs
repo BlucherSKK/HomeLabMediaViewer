@@ -2,6 +2,8 @@ use rusqlite::{Connection, OptionalExtension, Result, params};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{SystemTime, UNIX_EPOCH};
+use crate::hlmv::idhandler::MediaInfo;
+use rocket::serde::{Serialize, json::Json};
 
 #[derive(Debug, Clone)]
 pub struct FileRecord {
@@ -15,6 +17,16 @@ pub struct FileRecord {
 #[derive(Clone)]
 pub struct MediaDb {
     conn: Arc<Mutex<Connection>>,
+}
+
+impl FileRecord {
+    /// @description Преобразует запись из БД в JSON-объект для Rocket API.
+    pub fn into_media_info(self) -> Json<MediaInfo> {
+        Json(MediaInfo {
+            timestamp: self.timestamp,
+            volume: self.volume,
+        })
+    }
 }
 
 impl MediaDb {
@@ -50,14 +62,22 @@ impl MediaDb {
      * @description Возвращает ID записи в базе данных по заданному пути к файлу.
      * @param path Путь к файлу для поиска.
      */
-    pub fn get_id_by_path<P: AsRef<Path>>(&self, path: P) -> Result<Option<i32>> {
+    pub fn get_id_by_path<P: AsRef<Path>>(&self, path: P) -> Result<i32> {
         let path_str = path.as_ref().to_string_lossy();
+        let now = Self::current_time(); // Используем твой метод для времени
         let conn = self.conn.lock().unwrap();
+
+        // Мы пытаемся вставить запись.
+        // Если путь уже есть (CONFLICT), мы просто обновляем last_accessed (чтобы сработал RETURNING).
+        // Если пути нет — создаем новую.
         conn.query_row(
-            "SELECT id FROM playback_history WHERE file_path = ?1",
-            params![path_str],
-            |row| row.get(0),
-        ).optional()
+            "INSERT INTO playback_history (file_path, timestamp, volume, last_accessed)
+        VALUES (?1, 0, 100, ?2)
+        ON CONFLICT(file_path) DO UPDATE SET last_accessed = excluded.last_accessed
+        RETURNING id",
+        params![path_str, now],
+        |row| row.get(0),
+        )
     }
 
     pub fn get_path_by_id(&self, id: i32) -> Result<Option<PathBuf>> {
