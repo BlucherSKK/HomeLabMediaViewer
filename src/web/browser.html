@@ -9,11 +9,41 @@
     <div class="header">
         {{BACK}}
         <a id="path">/{{PATH}}</a>
+        <div class="dropdown">
+            <button id="dropBtn" class="dropbtn">
+                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGxpbmUgeDE9IjMiIHkxPSIxMiIgeDI9IjIxIiB5Mj0iMTIiPjwvbGluZT48bGluZSB4MT0iMyIgeTE9IjYiIHgyPSIyMSIgeTI9IjYiPjwvbGluZT48bGluZSB4MT0iMyIgeTE9IjE4IiB4Mj0iMjEiIHkyPSIxOCI+PC9saW5lPjwvc3ZnPg==" alt="Menu">
+            </button>
+            <div id="myDropdown" class="dropdown-content">
+                <a href="/settings">Настройки</a>
+            </div>
+        </div>
     </div>
     <div class="grid-map">
         <div class="grid">
             {{CONTENT}}
         </div>
     </div>
+<script>
+    const btn = document.getElementById("dropBtn");
+    const dropdown = document.getElementById("myDropdown");
+
+    // Переключение списка по клику на кнопку
+    btn.addEventListener("click", (event) => {
+        dropdown.classList.toggle("show");
+        event.stopPropagation(); // Чтобы клик по кнопке не закрывал список сразу
+    });
+
+    // Закрытие списка при клике в любое другое место экрана
+    window.addEventListener("click", () => {
+        if (dropdown.classList.contains('show')) {
+            dropdown.classList.remove('show');
+        }
+    });
+
+    // Остановка всплытия, чтобы клик внутри списка не закрывал его
+    dropdown.addEventListener("click", (event) => {
+        event.stopPropagation();
+    });
+</script>
 </body>
 </html>
